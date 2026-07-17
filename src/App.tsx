@@ -8,15 +8,15 @@ import { Hero } from './components/Hero';
 import { Footer } from './components/Footer';
 import { CartModal } from './components/CartModal';
 import { SearchFilters } from './components/SearchFilters';
-import { CategoryProductsModal } from './components/CategoryProductsModal';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminPanel } from './pages/AdminPanel';
+
+const slugify = (text: string) => `cat-${text.replace(/\s+/g, '-')}`;
 
 function Store() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [modalCategory, setModalCategory] = useState<string | null>(null);
   const catalogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,32 +46,34 @@ function Store() {
     return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filteredProducts]);
 
-  const modalProducts = useMemo(() => {
-    if (!modalCategory) return [];
-    return products.filter((p) => p.category === modalCategory);
-  }, [products, modalCategory]);
-
   const scrollToCatalog = () => {
     catalogRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleCategoryChange = (category: string | null) => {
-    setModalCategory(category);
+  const scrollToCategory = (category: string) => {
+    const el = document.getElementById(slugify(category));
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      // Si no está renderizada (ej: buscador activo la ocultó), limpiamos el buscador y reintentamos
+      setSearch('');
+      setTimeout(() => {
+        document.getElementById(slugify(category))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    }
   };
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
-      <Header onCartClick={() => setIsCartOpen(true)} />
+      <Header
+        onCartClick={() => setIsCartOpen(true)}
+        categories={categories}
+        onCategorySelect={scrollToCategory}
+      />
       <Hero onCtaClick={scrollToCatalog} />
 
       <div ref={catalogRef} className="bg-texture p-6 flex-1">
-        <SearchFilters
-          search={search}
-          onSearchChange={setSearch}
-          categories={categories}
-          activeCategory={modalCategory}
-          onCategoryChange={handleCategoryChange}
-        />
+        <SearchFilters search={search} onSearchChange={setSearch} />
 
         {filteredProducts.length === 0 ? (
           <p className="text-center text-brown/60 py-10">
@@ -80,7 +82,7 @@ function Store() {
         ) : (
           <div className="max-w-5xl mx-auto space-y-10">
             {groupedByCategory.map(([category, items]) => (
-              <section key={category}>
+              <section key={category} id={slugify(category)} className="scroll-mt-24">
                 <h2 className="font-display font-semibold text-xl text-forest mb-4">
                   {category}
                 </h2>
@@ -101,14 +103,6 @@ function Store() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
           <CartModal onClose={() => setIsCartOpen(false)} />
         </div>
-      )}
-
-      {modalCategory && (
-        <CategoryProductsModal
-          category={modalCategory}
-          products={modalProducts}
-          onClose={() => setModalCategory(null)}
-        />
       )}
     </div>
   );
