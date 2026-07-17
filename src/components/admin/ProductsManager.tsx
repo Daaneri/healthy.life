@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Pencil, Trash2, Plus, X, Check, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Product } from '../../types/product';
@@ -10,13 +10,30 @@ const EMPTY_FORM = {
   category: '',
   stock: '',
   image_url: '',
+  price_per_kg: '',
+  price_per_2kg: '',
+  price_per_3kg_plus: '',
 };
 
+const NEW_CATEGORY_VALUE = '__new__';
+
 interface EditValues {
+  name: string;
   price_retail: number;
   stock: number;
   category: string;
   description: string;
+  price_per_kg: string;
+  price_per_2kg: string;
+  price_per_3kg_plus: string;
+}
+
+// Convierte un string de input a number | null: vacío = sin escala de precio para ese tramo.
+function parseNullableNumber(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  const n = Number(trimmed);
+  return Number.isNaN(n) ? null : n;
 }
 
 export function ProductsManager() {
@@ -24,13 +41,19 @@ export function ProductsManager() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<EditValues>({
+    name: '',
     price_retail: 0,
     stock: 0,
     category: '',
     description: '',
+    price_per_kg: '',
+    price_per_2kg: '',
+    price_per_3kg_plus: '',
   });
+  const [editNewCategory, setEditNewCategory] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
   const [newProduct, setNewProduct] = useState(EMPTY_FORM);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
   const [savingNew, setSavingNew] = useState(false);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
 
@@ -50,11 +73,16 @@ export function ProductsManager() {
 
   const startEdit = (p: Product) => {
     setEditingId(p.id);
+    setEditNewCategory('');
     setEditValues({
+      name: p.name,
       price_retail: p.price_retail,
       stock: p.stock,
       category: p.category,
       description: p.description || '',
+      price_per_kg: p.price_per_kg?.toString() ?? '',
+      price_per_2kg: p.price_per_2kg?.toString() ?? '',
+      price_per_3kg_plus: p.price_per_3kg_plus?.toString() ?? '',
     });
   };
 
@@ -63,15 +91,26 @@ export function ProductsManager() {
   };
 
   const saveEdit = async (id: number) => {
-    const { error } = await supabase
-      .from('products')
-      .update({
-        price_retail: editValues.price_retail,
-        stock: editValues.stock,
-        category: editValues.category,
-        description: editValues.description,
-      })
-      .eq('id', id);
+    const finalCategory =
+      editValues.category === NEW_CATEGORY_VALUE ? editNewCategory.trim() : editValues.category;
+
+    if (!editValues.name.trim() || !finalCategory) {
+      alert('Nombre y categoría son obligatorios.');
+      return;
+    }
+
+    const payload = {
+      name: editValues.name.trim(),
+      price_retail: editValues.price_retail,
+      stock: editValues.stock,
+      category: finalCategory,
+      description: editValues.description,
+      price_per_kg: parseNullableNumber(editValues.price_per_kg),
+      price_per_2kg: parseNullableNumber(editValues.price_per_2kg),
+      price_per_3kg_plus: parseNullableNumber(editValues.price_per_3kg_plus),
+    };
+
+    const { error } = await supabase.from('products').update(payload).eq('id', id);
 
     if (error) {
       console.error(error);
@@ -79,9 +118,7 @@ export function ProductsManager() {
       return;
     }
 
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...editValues } : p))
-    );
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload } : p)));
     setEditingId(null);
   };
 
@@ -142,7 +179,10 @@ export function ProductsManager() {
   };
 
   const handleCreate = async () => {
-    if (!newProduct.name.trim() || !newProduct.category.trim()) {
+    const finalCategory =
+      newProduct.category === NEW_CATEGORY_VALUE ? newCategoryInput.trim() : newProduct.category.trim();
+
+    if (!newProduct.name.trim() || !finalCategory) {
       alert('Nombre y categoría son obligatorios.');
       return;
     }
@@ -155,10 +195,10 @@ export function ProductsManager() {
         description: newProduct.description.trim(),
         price_retail: Number(newProduct.price_retail) || 0,
         price_wholesale: null,
-        price_per_kg: null,
-        price_per_2kg: null,
-        price_per_3kg_plus: null,
-        category: newProduct.category.trim(),
+        price_per_kg: parseNullableNumber(newProduct.price_per_kg),
+        price_per_2kg: parseNullableNumber(newProduct.price_per_2kg),
+        price_per_3kg_plus: parseNullableNumber(newProduct.price_per_3kg_plus),
+        category: finalCategory,
         stock: Number(newProduct.stock) || 0,
         image_url: newProduct.image_url.trim(),
       })
@@ -175,6 +215,7 @@ export function ProductsManager() {
 
     setProducts((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
     setNewProduct(EMPTY_FORM);
+    setNewCategoryInput('');
     setShowNewForm(false);
   };
 
@@ -204,18 +245,30 @@ export function ProductsManager() {
               className="border border-beige-300 rounded-lg px-3 py-2 text-sm"
             />
 
-            <select
-              value={newProduct.category}
-              onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-              className="border border-beige-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white"
-            >
-              <option value="">Seleccionar categoría...</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-2">
+              <select
+                value={newProduct.category}
+                onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                className="border border-beige-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white"
+              >
+                <option value="">Seleccionar categoría...</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+                <option value={NEW_CATEGORY_VALUE}>+ Nueva categoría...</option>
+              </select>
+              {newProduct.category === NEW_CATEGORY_VALUE && (
+                <input
+                  type="text"
+                  placeholder="Nombre de la categoría nueva"
+                  value={newCategoryInput}
+                  onChange={(e) => setNewCategoryInput(e.target.value)}
+                  className="border border-beige-300 rounded-lg px-3 py-2 text-sm"
+                />
+              )}
+            </div>
 
             <input
               type="number"
@@ -237,6 +290,37 @@ export function ProductsManager() {
               onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
               className="border border-beige-300 rounded-lg px-3 py-2 text-sm sm:col-span-2"
             />
+
+            <div className="sm:col-span-2 border-t border-beige-100 pt-3">
+              <p className="text-xs font-medium text-gray-500 mb-2">
+                Precios por escala (opcional, dejá vacío si no aplica — ej. mixes en oferta por peso)
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                <input
+                  type="number"
+                  placeholder="Precio x 1kg"
+                  value={newProduct.price_per_kg}
+                  onChange={(e) => setNewProduct({ ...newProduct, price_per_kg: e.target.value })}
+                  className="border border-beige-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Precio x 2kg"
+                  value={newProduct.price_per_2kg}
+                  onChange={(e) => setNewProduct({ ...newProduct, price_per_2kg: e.target.value })}
+                  className="border border-beige-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Precio x 3kg+"
+                  value={newProduct.price_per_3kg_plus}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, price_per_3kg_plus: e.target.value })
+                  }
+                  className="border border-beige-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
           </div>
           <p className="text-xs text-gray-400">
             La foto se sube después de crear el producto, desde la tabla de abajo.
@@ -273,8 +357,8 @@ export function ProductsManager() {
           </thead>
           <tbody>
             {products.map((p) => (
-              <>
-                <tr key={p.id} className="border-t border-beige-100">
+              <Fragment key={p.id}>
+                <tr className="border-t border-beige-100">
                   <td className="p-3">
                     <label className="relative w-12 h-12 block rounded-lg overflow-hidden bg-beige-100 cursor-pointer group">
                       {p.image_url ? (
@@ -302,20 +386,43 @@ export function ProductsManager() {
                       />
                     </label>
                   </td>
-                  <td className="p-3">{p.name}</td>
+                  <td className="p-3">
+                    {editingId === p.id ? (
+                      <input
+                        type="text"
+                        value={editValues.name}
+                        onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
+                        className="border border-beige-300 rounded px-2 py-1 text-sm w-full"
+                      />
+                    ) : (
+                      p.name
+                    )}
+                  </td>
                   <td className="p-3 text-gray-500">
                     {editingId === p.id ? (
-                      <select
-                        value={editValues.category}
-                        onChange={(e) => setEditValues({ ...editValues, category: e.target.value })}
-                        className="border border-beige-300 rounded px-2 py-1 text-sm bg-white"
-                      >
-                        {categories.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex flex-col gap-1.5">
+                        <select
+                          value={editValues.category}
+                          onChange={(e) => setEditValues({ ...editValues, category: e.target.value })}
+                          className="border border-beige-300 rounded px-2 py-1 text-sm bg-white"
+                        >
+                          {categories.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                          <option value={NEW_CATEGORY_VALUE}>+ Nueva categoría...</option>
+                        </select>
+                        {editValues.category === NEW_CATEGORY_VALUE && (
+                          <input
+                            type="text"
+                            placeholder="Nombre de la categoría nueva"
+                            value={editNewCategory}
+                            onChange={(e) => setEditNewCategory(e.target.value)}
+                            className="border border-beige-300 rounded px-2 py-1 text-sm"
+                          />
+                        )}
+                      </div>
                     ) : (
                       p.category
                     )}
@@ -377,21 +484,59 @@ export function ProductsManager() {
                 </tr>
                 {editingId === p.id && (
                   <tr className="bg-beige-50 border-t border-beige-100">
-                    <td colSpan={6} className="p-3">
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        Descripción
-                      </label>
-                      <textarea
-                        value={editValues.description}
-                        onChange={(e) => setEditValues({ ...editValues, description: e.target.value })}
-                        placeholder="Descripción breve del producto..."
-                        rows={2}
-                        className="w-full border border-beige-300 rounded-lg px-3 py-2 text-sm bg-white"
-                      />
+                    <td colSpan={6} className="p-3 space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Descripción
+                        </label>
+                        <textarea
+                          value={editValues.description}
+                          onChange={(e) =>
+                            setEditValues({ ...editValues, description: e.target.value })
+                          }
+                          placeholder="Descripción breve del producto..."
+                          rows={2}
+                          className="w-full border border-beige-300 rounded-lg px-3 py-2 text-sm bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Precios por escala (vacío = no aplica)
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="number"
+                            placeholder="x 1kg"
+                            value={editValues.price_per_kg}
+                            onChange={(e) =>
+                              setEditValues({ ...editValues, price_per_kg: e.target.value })
+                            }
+                            className="border border-beige-300 rounded-lg px-3 py-2 text-sm bg-white"
+                          />
+                          <input
+                            type="number"
+                            placeholder="x 2kg"
+                            value={editValues.price_per_2kg}
+                            onChange={(e) =>
+                              setEditValues({ ...editValues, price_per_2kg: e.target.value })
+                            }
+                            className="border border-beige-300 rounded-lg px-3 py-2 text-sm bg-white"
+                          />
+                          <input
+                            type="number"
+                            placeholder="x 3kg+"
+                            value={editValues.price_per_3kg_plus}
+                            onChange={(e) =>
+                              setEditValues({ ...editValues, price_per_3kg_plus: e.target.value })
+                            }
+                            className="border border-beige-300 rounded-lg px-3 py-2 text-sm bg-white"
+                          />
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

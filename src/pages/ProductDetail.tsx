@@ -6,6 +6,7 @@ import type { Product } from '../types/product';
 import { useCartStore } from '../store/useCartStore';
 import { useToastStore } from '../store/useToastStore';
 import { getEffectivePrice } from '../utils/pricing';
+import { useMetaTags } from '../hooks/useMetaTags';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 
@@ -58,6 +59,15 @@ export function ProductDetail() {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // Meta tags dinámicos: si no hay producto todavía usa valores genéricos,
+  // así el título no queda vacío mientras carga.
+  useMetaTags({
+    title: product?.name || 'Producto',
+    description: product?.description || undefined,
+    image: product?.image_url || undefined,
+    type: 'product',
+  });
+
   const handleAdd = () => {
     if (!product) return;
     for (let i = 0; i < quantity; i++) {
@@ -97,8 +107,28 @@ export function ProductDetail() {
   const effectivePrice = getEffectivePrice(product, quantity);
   const isDiscounted = product.price_per_kg !== null && effectivePrice < product.price_per_kg;
 
+  // JSON-LD para que Google pueda mostrar precio/disponibilidad en resultados de búsqueda.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description || undefined,
+    image: product.image_url || undefined,
+    category: product.category,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'ARS',
+      price: product.price_retail,
+      availability: outOfStock
+        ? 'https://schema.org/OutOfStock'
+        : 'https://schema.org/InStock',
+    },
+  };
+
   return (
     <div className="min-h-screen bg-cream flex flex-col">
+      <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+
       <Header onCartClick={() => {}} />
 
       <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6">
@@ -139,7 +169,7 @@ export function ProductDetail() {
             )}
 
             <div className="mt-6 flex items-baseline gap-2">
-              <span className="text-forest font-bold text-3xl">
+              <span className="text-forest font-bold text-2xl sm:text-3xl">
                 ${effectivePrice.toLocaleString('es-AR')}
               </span>
               {isDiscounted && (
