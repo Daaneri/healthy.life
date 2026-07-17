@@ -17,7 +17,9 @@ export function CategorySection({ category, products }: CategorySectionProps) {
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display font-semibold text-xl text-forest">{category}</h2>
+        <h2 className="font-display font-semibold text-xl text-forest">
+          {category} <span className="text-brown/40 text-base font-body">({products.length})</span>
+        </h2>
         {hasMore && (
           <button
             onClick={() => setExpanded((v) => !v)}

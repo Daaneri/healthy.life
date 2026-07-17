@@ -43,3 +43,18 @@ h1, h2, h3, .font-display {
   background-repeat: repeat;
   background-size: 240px 240px;
 }
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fadein {
+  animation: fadein 0.25s ease-out;
+}

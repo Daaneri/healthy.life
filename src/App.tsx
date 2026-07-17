@@ -3,17 +3,19 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import type { Product } from './types/product';
 import { ProductCard } from './components/ProductCard';
+import { ProductCardSkeleton } from './components/ProductCardSkeleton';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { Footer } from './components/Footer';
 import { CartModal } from './components/CartModal';
 import { SearchFilters } from './components/SearchFilters';
+import { CategorySection } from './components/CategorySection';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminPanel } from './pages/AdminPanel';
-import { CategorySection } from './components/CategorySection';
 
 function Store() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -21,9 +23,11 @@ function Store() {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
       const { data, error } = await supabase.from('products').select('*');
       if (error) console.error('Error:', error);
       else setProducts(data || []);
+      setLoading(false);
     };
     fetchProducts();
   }, []);
@@ -69,21 +73,33 @@ function Store() {
           onCategoryChange={setActiveCategory}
         />
 
-        {filteredProducts.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 max-w-5xl mx-auto">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <p className="text-center text-brown/60 py-10">
             No encontramos productos con esa búsqueda.
           </p>
-        ) : groupedByCategory ? (
-          <div className="max-w-5xl mx-auto space-y-10">
-            {groupedByCategory.map(([category, items]) => (
-              <CategorySection key={category} category={category} products={items} />
-            ))}
-          </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 max-w-5xl mx-auto">
-            {filteredProducts.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+          <div key={activeCategory ?? 'all'} className="animate-fadein">
+            {groupedByCategory ? (
+              <div className="max-w-5xl mx-auto divide-y divide-brown/10">
+                {groupedByCategory.map(([category, items], idx) => (
+                  <div key={category} className={idx === 0 ? 'pb-8' : 'py-8'}>
+                    <CategorySection category={category} products={items} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 max-w-5xl mx-auto">
+                {filteredProducts.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
