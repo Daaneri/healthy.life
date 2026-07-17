@@ -11,12 +11,11 @@ import { SearchFilters } from './components/SearchFilters';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminPanel } from './pages/AdminPanel';
 
-const slugify = (text: string) => `cat-${text.replace(/\s+/g, '-')}`;
-
 function Store() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const catalogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,32 +33,25 @@ function Store() {
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
-  }, [products, search]);
+    return products.filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = activeCategory === null || p.category === activeCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, search, activeCategory]);
 
   const groupedByCategory = useMemo(() => {
+    if (activeCategory !== null) return null;
     const groups = new Map<string, Product[]>();
     for (const p of filteredProducts) {
       if (!groups.has(p.category)) groups.set(p.category, []);
       groups.get(p.category)!.push(p);
     }
     return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [filteredProducts]);
+  }, [filteredProducts, activeCategory]);
 
   const scrollToCatalog = () => {
     catalogRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const scrollToCategory = (category: string) => {
-    const el = document.getElementById(slugify(category));
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      setSearch('');
-      setTimeout(() => {
-        document.getElementById(slugify(category))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 50);
-    }
   };
 
   return (
@@ -72,17 +64,18 @@ function Store() {
           search={search}
           onSearchChange={setSearch}
           categories={categories}
-          onCategorySelect={scrollToCategory}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
         />
 
         {filteredProducts.length === 0 ? (
           <p className="text-center text-brown/60 py-10">
             No encontramos productos con esa búsqueda.
           </p>
-        ) : (
+        ) : groupedByCategory ? (
           <div className="max-w-5xl mx-auto space-y-10">
             {groupedByCategory.map(([category, items]) => (
-              <section key={category} id={slugify(category)} className="scroll-mt-24">
+              <section key={category}>
                 <h2 className="font-display font-semibold text-xl text-forest mb-4">
                   {category}
                 </h2>
@@ -92,6 +85,12 @@ function Store() {
                   ))}
                 </div>
               </section>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 max-w-5xl mx-auto">
+            {filteredProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
             ))}
           </div>
         )}

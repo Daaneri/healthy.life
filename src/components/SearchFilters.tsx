@@ -1,39 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
-import { Search, ChevronDown } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface SearchFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
   categories: string[];
-  onCategorySelect: (category: string) => void;
+  activeCategory: string | null;
+  onCategoryChange: (category: string | null) => void;
 }
 
 export function SearchFilters({
   search,
   onSearchChange,
   categories,
-  onCategorySelect,
+  activeCategory,
+  onCategoryChange,
 }: SearchFiltersProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelect = (category: string) => {
-    setMenuOpen(false);
-    onCategorySelect(category);
-  };
-
   return (
-    <div className="max-w-5xl mx-auto px-4 mb-8 space-y-2">
+    <div className="max-w-5xl mx-auto px-4 mb-8 space-y-4">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
@@ -45,28 +28,30 @@ export function SearchFilters({
         />
       </div>
 
-      <div className="relative" ref={menuRef}>
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
         <button
-          onClick={() => setMenuOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-medium text-forest bg-white border border-brown/10 px-4 py-2 rounded-full hover:border-forest/30 transition-colors"
+          onClick={() => onCategoryChange(null)}
+          className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            activeCategory === null
+              ? 'bg-forest text-white shadow-sm'
+              : 'bg-white text-brown/70 border border-brown/10 hover:border-forest/30 hover:text-forest'
+          }`}
         >
-          Categorías
-          <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+          Todos
         </button>
-
-        {menuOpen && (
-          <div className="absolute left-0 top-full mt-2 w-64 max-h-80 overflow-y-auto bg-white rounded-xl shadow-lg border border-brown/10 py-2 z-40">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => handleSelect(cat)}
-                className="w-full text-left px-4 py-2 text-sm text-brown/80 hover:bg-beige-100 hover:text-forest transition-colors"
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => onCategoryChange(cat)}
+            className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              activeCategory === cat
+                ? 'bg-forest text-white shadow-sm'
+                : 'bg-white text-brown/70 border border-brown/10 hover:border-forest/30 hover:text-forest'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
     </div>
   );
