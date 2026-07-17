@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import type { Product } from '../types/product';
 import { useCartStore } from '../store/useCartStore';
@@ -8,23 +9,30 @@ interface Props {
 }
 
 export const ProductCard = ({ product }: Props) => {
+  const navigate = useNavigate();
   const addToCart = useCartStore((state) => state.addToCart);
   const showToast = useToastStore((state) => state.showToast);
   const outOfStock = product.stock <= 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
 
-  const handleAdd = () => {
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation(); // que no dispare la navegación al detalle
     addToCart(product);
     showToast(`${product.name} agregado`);
   };
 
   return (
-    <div className="group bg-white rounded-2xl shadow-sm border border-brown/10 p-2.5 sm:p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+    <div
+      onClick={() => navigate(`/producto/${product.id}`)}
+      className="group bg-white rounded-2xl shadow-sm border border-brown/10 p-2.5 sm:p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+    >
       <div className="relative h-28 sm:h-40 bg-beige-100 rounded-xl mb-2 sm:mb-3 overflow-hidden flex items-center justify-center text-gray-400">
         {product.image_url ? (
           <img
             src={product.image_url}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (

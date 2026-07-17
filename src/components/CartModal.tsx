@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useCartStore } from '../store/useCartStore';
 import { supabase } from '../lib/supabase';
-import type { Product } from '../types/product';
+import { getEffectivePrice, isValidPhone } from '../utils/pricing';
 import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
 
 interface CartModalProps {
   onClose: () => void;
 }
-
-type CartItem = Product & { quantity: number };
 
 const WHATSAPP_NUMBER = '5491138899936'; // 54 9 + código de área + número, sin espacios ni signos
 
@@ -20,31 +18,23 @@ export function CartModal({ onClose }: CartModalProps) {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Precio efectivo según cantidad: si el producto tiene escala (mixes en oferta), usa el tramo correspondiente.
-  // Si no tiene escala cargada (resto del catálogo), usa el precio normal.
-  const getEffectivePrice = (item: CartItem) => {
-    if (item.price_per_kg === null) {
-      return item.price_retail;
-    }
-    if (item.quantity >= 3 && item.price_per_3kg_plus !== null) {
-      return item.price_per_3kg_plus;
-    }
-    if (item.quantity === 2 && item.price_per_2kg !== null) {
-      return item.price_per_2kg;
-    }
-    return item.price_per_kg;
-  };
+  const phoneIsValid = isValidPhone(phone);
+  const showPhoneError = phoneTouched && phone.trim() !== '' && !phoneIsValid;
 
-  const total = cart.reduce((acc, item) => acc + getEffectivePrice(item) * item.quantity, 0);
+  const total = cart.reduce(
+    (acc, item) => acc + getEffectivePrice(item, item.quantity) * item.quantity,
+    0
+  );
 
-  const canSubmit = cart.length > 0 && name.trim() !== '' && phone.trim() !== '' && !loading;
+  const canSubmit = cart.length > 0 && name.trim() !== '' && phoneIsValid && !loading;
 
   const buildWhatsAppMessage = () => {
     const lines = cart.map((item) => {
-      const price = getEffectivePrice(item);
+      const price = getEffectivePrice(item, item.quantity);
       return `- ${item.name} x${item.quantity} — $${(price * item.quantity).toLocaleString('es-AR')}`;
     });
 
@@ -62,6 +52,11 @@ export function CartModal({ onClose }: CartModalProps) {
   };
 
   const handleSubmit = async () => {
+    if (!phoneIsValid) {
+      setPhoneTouched(true);
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
 
@@ -72,7 +67,7 @@ export function CartModal({ onClose }: CartModalProps) {
         id: item.id,
         name: item.name,
         quantity: item.quantity,
-        price: getEffectivePrice(item),
+        price: getEffectivePrice(item, item.quantity),
       })),
       total,
     });
@@ -113,7 +108,7 @@ export function CartModal({ onClose }: CartModalProps) {
           </div>
         ) : (
           cart.map((item) => {
-            const effectivePrice = getEffectivePrice(item);
+            const effectivePrice = getEffectivePrice(item, item.quantity);
             const isDiscounted = item.price_per_kg !== null && effectivePrice < item.price_per_kg;
 
             return (
@@ -175,13 +170,25 @@ export function CartModal({ onClose }: CartModalProps) {
             onChange={(e) => setName(e.target.value)}
             className="w-full border border-beige-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
           />
-          <input
-            type="tel"
-            placeholder="Teléfono (WhatsApp)"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="w-full border border-beige-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-          />
+          <div>
+            <input
+              type="tel"
+              placeholder="Teléfono (WhatsApp)"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              onBlur={() => setPhoneTouched(true)}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
+                showPhoneError
+                  ? 'border-red-400 focus:ring-red-300'
+                  : 'border-beige-300 focus:ring-orange-400'
+              }`}
+            />
+            {showPhoneError && (
+              <p className="text-xs text-red-500 mt-1">
+                Ingresá un teléfono válido (solo números, 8 a 15 dígitos)
+              </p>
+            )}
+          </div>
 
           {errorMsg && (
             <p className="text-sm text-red-500 text-center">{errorMsg}</p>
