@@ -12,6 +12,9 @@ import { SearchFilters } from './components/SearchFilters';
 import { CategorySection } from './components/CategorySection';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminPanel } from './pages/AdminPanel';
+import { Toast } from './components/Toast';
+import { ScrollToTop } from './components/ScrollToTop';
+import { WhatsAppFloatingButton } from './components/WhatsAppFloatingButton';
 
 function Store() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -111,6 +114,10 @@ function Store() {
           <CartModal onClose={() => setIsCartOpen(false)} />
         </div>
       )}
+
+      <Toast />
+      <ScrollToTop />
+      <WhatsAppFloatingButton />
     </div>
   );
 }

@@ -14,7 +14,10 @@ export function CartButton({ onClick }: { onClick: () => void }) {
     >
       <ShoppingCart className="w-6 h-6 text-forest" />
       {totalItems > 0 && (
-        <span className="absolute -top-1 -right-1 bg-mustard text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-in zoom-in duration-200">
+        <span
+          key={totalItems}
+          className="absolute -top-1 -right-1 bg-mustard text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-fadein"
+        >
           {totalItems}
         </span>
       )}

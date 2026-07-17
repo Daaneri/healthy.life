@@ -1,6 +1,7 @@
 import { ShoppingCart } from 'lucide-react';
 import type { Product } from '../types/product';
 import { useCartStore } from '../store/useCartStore';
+import { useToastStore } from '../store/useToastStore';
 
 interface Props {
   product: Product;
@@ -8,8 +9,14 @@ interface Props {
 
 export const ProductCard = ({ product }: Props) => {
   const addToCart = useCartStore((state) => state.addToCart);
+  const showToast = useToastStore((state) => state.showToast);
   const outOfStock = product.stock <= 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
+
+  const handleAdd = () => {
+    addToCart(product);
+    showToast(`${product.name} agregado`);
+  };
 
   return (
     <div className="group bg-white rounded-2xl shadow-sm border border-brown/10 p-2.5 sm:p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
@@ -55,7 +62,7 @@ export const ProductCard = ({ product }: Props) => {
           ${product.price_retail.toLocaleString('es-AR')}
         </span>
         <button
-          onClick={() => addToCart(product)}
+          onClick={handleAdd}
           disabled={outOfStock}
           className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-mustard text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-base font-medium hover:bg-mustard-dark active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
         >

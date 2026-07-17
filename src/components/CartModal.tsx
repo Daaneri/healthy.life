@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { X, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCartStore } from '../store/useCartStore';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types/product';
+import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
 
 interface CartModalProps {
   onClose: () => void;
@@ -106,7 +106,11 @@ export function CartModal({ onClose }: CartModalProps) {
       {/* Lista de items */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {cart.length === 0 ? (
-          <p className="text-center text-gray-400 py-10">Tu carrito está vacío</p>
+          <div className="text-center py-14">
+            <ShoppingBag className="w-12 h-12 text-beige-300 mx-auto mb-3" />
+            <p className="text-brown/60 font-medium">Tu carrito está vacío</p>
+            <p className="text-brown/40 text-sm mt-1">Agregá productos para armar tu pedido</p>
+          </div>
         ) : (
           cart.map((item) => {
             const effectivePrice = getEffectivePrice(item);
@@ -128,28 +132,28 @@ export function CartModal({ onClose }: CartModalProps) {
                     )}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-beige-100 hover:bg-beige-200"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-5 text-center text-sm">{item.quantity}</span>
-                  <button
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-beige-100 hover:bg-beige-200"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => removeFromCart(item.id)}
-                  aria-label="Quitar producto"
-                  className="text-gray-400 hover:text-red-500"
+                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-beige-100 hover:bg-beige-200 active:scale-90 transition-transform"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Minus className="w-4 h-4" />
                 </button>
+                <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                <button
+                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-beige-100 hover:bg-beige-200 active:scale-90 transition-transform"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              <button
+                onClick={() => removeFromCart(item.id)}
+                aria-label="Quitar producto"
+                className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-transform"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
               </div>
             );
           })
