@@ -10,6 +10,7 @@ import { CartModal } from './components/CartModal';
 import { SearchFilters } from './components/SearchFilters';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminPanel } from './pages/AdminPanel';
+import { CategorySection } from './components/CategorySection';
 
 function Store() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -75,16 +76,7 @@ function Store() {
         ) : groupedByCategory ? (
           <div className="max-w-5xl mx-auto space-y-10">
             {groupedByCategory.map(([category, items]) => (
-              <section key={category}>
-                <h2 className="font-display font-semibold text-xl text-forest mb-4">
-                  {category}
-                </h2>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                  {items.map((p) => (
-                    <ProductCard key={p.id} product={p} />
-                  ))}
-                </div>
-              </section>
+              <CategorySection key={category} category={category} products={items} />
             ))}
           </div>
         ) : (
