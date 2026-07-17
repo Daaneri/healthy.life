@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+@theme {
+  --color-cream: #F7F2E7;
+  --color-offwhite: #FFFDF8;
+  --color-forest: #2E4A34;
+  --color-forest-dark: #1D3123;
+  --color-brown: #5C3D2E;
+  --color-mustard: #D98A1F;
+  --color-mustard-dark: #B87418;
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Work Sans', sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-cream);
+  color: var(--color-forest-dark);
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 35s linear infinite;
+}
+
+.bg-texture {
+  background-color: var(--color-cream);
+  background-image: url('./assets/nut-pattern.svg');
+  background-repeat: repeat;
+  background-size: 240px 240px;
+}
