@@ -55,7 +55,6 @@ function Store() {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
-      // Si no está renderizada (ej: buscador activo la ocultó), limpiamos el buscador y reintentamos
       setSearch('');
       setTimeout(() => {
         document.getElementById(slugify(category))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -65,15 +64,16 @@ function Store() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
-      <Header
-        onCartClick={() => setIsCartOpen(true)}
-        categories={categories}
-        onCategorySelect={scrollToCategory}
-      />
+      <Header onCartClick={() => setIsCartOpen(true)} />
       <Hero onCtaClick={scrollToCatalog} />
 
       <div ref={catalogRef} className="bg-texture p-6 flex-1">
-        <SearchFilters search={search} onSearchChange={setSearch} />
+        <SearchFilters
+          search={search}
+          onSearchChange={setSearch}
+          categories={categories}
+          onCategorySelect={scrollToCategory}
+        />
 
         {filteredProducts.length === 0 ? (
           <p className="text-center text-brown/60 py-10">
