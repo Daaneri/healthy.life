@@ -26,7 +26,7 @@ export function Footer() {
 
           <div className="flex items-center gap-2 text-sm text-emerald-200/80">
             <MapPin className="w-4 h-4" />
-            Villa Constitución, Santa Fe (Envíos y retiro coordinado)
+            Envíos y retiro coordinado
           </div>
         </div>
 
